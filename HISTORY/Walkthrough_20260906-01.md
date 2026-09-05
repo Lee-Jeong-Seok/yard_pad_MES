@@ -41,7 +41,10 @@
 
 ### 5) 배포 인프라 및 Git 형상 관리
 * **`docker-compose.yml`, `nginx/nginx.conf`, `server/Dockerfile`**: 사내 Rocky Linux 서버 원클릭 배포 환경 구성
-* **Git 초기화 및 로컬 커밋 완료**: 33개 파일, 4,347줄의 최초 커밋(`feat: Initial commit for Yard Pad MES`) 생성
+* **Git 초기화 및 로컬 커밋 완료**: 34개 파일의 최초 커밋(`feat: Initial commit for Yard Pad MES`) 생성
+* **GitHub 원격 저장소 연동 및 푸시 완료**:
+  * 리포지토리: [https://github.com/Lee-Jeong-Seok/yard_pad_MES](https://github.com/Lee-Jeong-Seok/yard_pad_MES)
+  * `main` 브랜치 최초 푸시 및 트래킹 완료 (`git push -u origin main`)
 
 ---
 
@@ -53,3 +56,4 @@
   * `/api/sorting`: 2건 조회 성공
   * `/api/transfer/locations`: 7개 야드 구역 조회 성공
   * `/api/handover/items`: 2건 조회 성공
+* **GitHub 원격 동기화**: `Your branch is up to date with 'origin/main'` 확인 완료
