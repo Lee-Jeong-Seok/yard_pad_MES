@@ -1,0 +1,51 @@
+# =============================================================================
+# 시스템명: 야드 현장 업무용 패드 웹 시스템 (Yard Pad MES)
+# Docker Compose 배포 구성
+# 사내 Rocky Linux 서버 구동 명령어: docker compose up -d --build
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # 1. Node.js REST API 백엔드 컨테이너
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: yard_mes_api
+    restart: always
+    environment:
+      - PORT=3300
+      - NODE_ENV=production
+      - DB_SERVER=${DB_SERVER:-192.168.0.100}
+      - DB_PORT=${DB_PORT:-1433}
+      - DB_NAME=${DB_NAME:-MES_DB}
+      - DB_USER=${DB_USER:-mes_user}
+      - DB_PASSWORD=${DB_PASSWORD:-mes_password!}
+      - DB_ENCRYPT=${DB_ENCRYPT:-false}
+      - DB_TRUST_SERVER_CERTIFICATE=${DB_TRUST_SERVER_CERTIFICATE:-true}
+      - USE_MOCK_DB=${USE_MOCK_DB:-false}
+    volumes:
+      - ./server/uploads:/app/server/uploads
+    networks:
+      - yard_net
+
+  # 2. Nginx 웹 리버스 프록시 및 정적 리소스 서빙 컨테이너
+  web:
+    image: nginx:alpine
+    container_name: yard_mes_web
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./client:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./server/uploads:/var/www/uploads:ro
+    depends_on:
+      - api
+    networks:
+      - yard_net
+
+networks:
+  yard_net:
+    driver: bridge

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>야드 현장 업무용 패드 시스템 (Yard Pad MES)</title>
+  
+  <!-- PWA 메타 태그 -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- 스타일시트 -->
+  <link rel="stylesheet" href="./css/style.css">
+
+  <!-- 카메라 바코드/QR 스캐너 라이브러리 (CDN) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- =============================================================================
+       1. 상단 글로벌 헤더 (52px)
+       ============================================================================= -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <span class="icon">🏗️</span>
+        <div class="system-title">
+          <span>야드 현장 MES</span>
+          <span class="system-tag">PAD v1.0</span>
+        </div>
+      </div>
+
+      <!-- 4대 업무 전환 탭 -->
+      <nav class="header-tabs">
+        <button type="button" class="tab-btn active" data-tab="inspection" onclick="App.switchTab('inspection')">
+          <span>🔍</span> 입고검사
+        </button>
+        <button type="button" class="tab-btn" data-tab="sorting" onclick="App.switchTab('sorting')">
+          <span>📊</span> 입고선별
+        </button>
+        <button type="button" class="tab-btn" data-tab="transfer" onclick="App.switchTab('transfer')">
+          <span>🔄</span> 야드 이송
+        </button>
+        <button type="button" class="tab-btn" data-tab="handover" onclick="App.switchTab('handover')">
+          <span>✍️</span> 공정 인계
+        </button>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <div id="wifiStatusPill" class="status-pill">
+        <span class="status-dot"></span> Wi-Fi 정상
+      </div>
+      <div id="dbStatusPill" class="status-pill">
+        <span class="status-dot"></span> 상태 확인 중
+      </div>
+      <div class="user-info">
+        <div class="user-avatar">김</div>
+        <span>김현장 (야드담당)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- =============================================================================
+       2. 검색 조건 툴바 (56px)
+       ============================================================================= -->
+  <section class="toolbar">
+    <div class="toolbar-filters">
+      <div class="filter-group">
+        <span class="filter-label">입고일자:</span>
+        <input type="date" id="filterFromDate" class="filter-input" value="2026-09-01">
+        <span style="color:var(--text-dim);">~</span>
+        <input type="date" id="filterToDate" class="filter-input" value="2026-09-30">
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">공급처:</span>
+        <select id="filterSupplier" class="filter-select">
+          <option value="">전체 공급사</option>
+          <option value="포스코스틸">포스코스틸(주)</option>
+          <option value="현대제철">현대제철(주)</option>
+          <option value="동양스틸">동양스틸파이프</option>
+          <option value="삼우특수">삼우특수화스너</option>
+        </select>
+      </div>
+
+      <div class="filter-group" style="flex:1; max-width:280px;">
+        <input type="text" id="filterKeyword" class="filter-input" placeholder="품번 / 품명 / 바코드 검색" style="width:100%;">
+      </div>
+
+      <button type="button" id="btnSearch" class="btn btn-secondary">
+        <span>🔍</span> 조회
+      </button>
+      <button type="button" id="btnReset" class="btn btn-secondary">
+        <span>↺</span> 초기화
+      </button>
+    </div>
+
+    <div class="toolbar-actions">
+      <button type="button" id="btnGlobalScan" class="btn btn-scan">
+        <span style="font-size:1.15rem;">📷</span> 바코드 스캔
+      </button>
+    </div>
+  </section>
+
+  <!-- =============================================================================
+       3. 메인 콘텐츠 2분할 마스터-디테일 레이아웃
+       ============================================================================= -->
+  <main class="main-container">
+    <!-- 좌측 (60%) 마스터 그리드 패널 -->
+    <section class="master-panel">
+      <div class="panel-header">
+        <span id="masterGridTitle">입고검사 대상 품목 목록</span>
+        <span style="font-size:0.8rem; color:var(--text-dim);">* 행 터치 시 우측 상세 로딩</span>
+      </div>
+      <div class="grid-wrapper">
+        <table class="mes-table">
+          <thead id="masterTableHead">
+            <!-- Dynamic Columns -->
+          </thead>
+          <tbody id="masterTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 우측 (40%) 디테일 입력 & 액션 패널 -->
+    <section class="detail-panel">
+      <div class="panel-header">
+        <span id="detailPanelTitle">검사 상세 입력 및 판정</span>
+      </div>
+      <div class="detail-content" id="detailContent">
+        <!-- Dynamic Detail Form -->
+      </div>
+      <div class="detail-actions" id="detailActions">
+        <!-- Dynamic Action Buttons -->
+      </div>
+    </section>
+  </main>
+
+  <!-- =============================================================================
+       4. 모달 다이얼로그 (스캐너, 서명, 도면)
+       ============================================================================= -->
+
+  <!-- [모달 1] 카메라 바코드/QR 스캐너 -->
+  <div id="scannerModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>📷 카메라 바코드 / QR 코드 스캐너</span>
+        <button class="modal-close" onclick="BarcodeScanner.close()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="cameraNotice" style="font-size:0.85rem; color:#94a3b8; text-align:center;">
+          패드 카메라를 자재 또는 로케이션 바코드에 맞추어 주십시오.
+        </div>
+        
+        <!-- 카메라 영상 영역 -->
+        <div id="qrReader" style="width:100%; min-height:220px; background:#000; border-radius:8px; overflow:hidden;"></div>
+
+        <!-- 수동 입력 및 모의 테스트 버튼 -->
+        <div style="margin-top:10px; border-top:1px solid #334155; padding-top:12px;">
+          <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:6px;">또는 바코드 직접 입력 / 모의 스캔:</div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="manualBarcodeInput" class="touch-input" placeholder="MAT-20260906-001" style="font-size:1rem;">
+            <button class="btn btn-primary" onclick="BarcodeScanner.handleSuccess(document.getElementById('manualBarcodeInput').value)">
+              입력 완료
+            </button>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+            <button class="btn btn-secondary" style="height:32px; font-size:0.75rem;" onclick="BarcodeScanner.handleSuccess('MAT-20260906-001')">강판 12T (001)</button>
+            <button class="btn btn-secondary" style="height:32px; font-size:0.75rem;" onclick="BarcodeScanner.handleSuccess('MAT-20260906-002')">강판 20T (002)</button>
+            <button class="btn btn-secondary" style="height:32px; font-size:0.75rem;" onclick="BarcodeScanner.handleSuccess('MAT-20260906-003')">H형강 (003)</button>
+            <button class="btn btn-secondary" style="height:32px; font-size:0.75rem;" onclick="BarcodeScanner.handleSuccess('YD-A-01')">로케이션 YD-A-01</button>
+            <button class="btn btn-secondary" style="height:32px; font-size:0.75rem;" onclick="BarcodeScanner.handleSuccess('YD-B-02')">로케이션 YD-B-02</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 2] 터치 전자서명 캔버스 -->
+  <div id="signatureModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>✍️ 인수자 디지털 전자서명</span>
+        <button class="modal-close" onclick="DigitalSignature.close()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:0.85rem; color:#94a3b8;">
+          터치펜(S-Pen) 또는 손가락으로 아래 사각 영역에 정자 서명을 날인해 주십시오.
+        </div>
+        <div class="signature-box">
+          <canvas id="signatureCanvas"></canvas>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:10px; margin-top:8px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="DigitalSignature.clear()">
+            지우기 (다시 쓰기)
+          </button>
+          <button class="btn btn-primary" style="flex:1;" onclick="DigitalSignature.confirm()">
+            서명 완료 및 확인
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 3] 도면 및 사양서 뷰어 -->
+  <div id="docModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:760px;">
+      <div class="modal-header">
+        <span id="docModalTitle">자재 품질 규격서 및 도면</span>
+        <button class="modal-close" onclick="DocumentViewer.close()">✕</button>
+      </div>
+      <div class="modal-body" id="docModalContent">
+        <!-- Dynamic Document Content -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 스크립트 파일들 -->
+  <script src="./js/api.js"></script>
+  <script src="./js/compressor.js"></script>
+  <script src="./js/scanner.js"></script>
+  <script src="./js/signature.js"></script>
+  <script src="./js/docViewer.js"></script>
+  <script src="./js/app.js"></script>
+
+</body>
+</html>

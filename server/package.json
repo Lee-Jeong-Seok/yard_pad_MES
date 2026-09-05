@@ -1,0 +1,20 @@
+{
+  "name": "yard-pad-mes-server",
+  "version": "1.0.0",
+  "description": "Yard Pad MES REST API Server with MS-SQL & Mock Support",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": ["mes", "yard", "pwa", "mssql", "express"],
+  "author": "hardrains",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mssql": "^11.0.1",
+    "multer": "^1.4.5-lts.1"
+  }
+}
