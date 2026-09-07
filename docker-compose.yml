@@ -24,7 +24,6 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-mes_password!}
       - DB_ENCRYPT=${DB_ENCRYPT:-false}
       - DB_TRUST_SERVER_CERTIFICATE=${DB_TRUST_SERVER_CERTIFICATE:-true}
-      - USE_MOCK_DB=${USE_MOCK_DB:-false}
     volumes:
       - ./server/uploads:/app/server/uploads
     networks:

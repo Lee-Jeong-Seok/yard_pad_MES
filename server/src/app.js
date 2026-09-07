@@ -8,7 +8,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDb, isMock } = require('./config/db');
+const { initDb, isDbConnected } = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 3300;
@@ -37,7 +37,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'UP',
     system: 'Yard Pad MES Server',
-    mockMode: isMock(),
+    dbConnected: isDbConnected(),
     timestamp: new Date().toISOString()
   });
 });
@@ -54,7 +54,7 @@ async function startServer() {
     console.log(`=======================================================`);
     console.log(`🚀 Yard Pad MES 서버가 포트 ${PORT}에서 정상 구동 중입니다.`);
     console.log(`📱 로컬 접속: http://localhost:${PORT}`);
-    console.log(`⚙️  모드: ${isMock() ? '인메모리 MOCK 모드' : '사내 MS-SQL 연동 모드'}`);
+    console.log(`⚙️  DB 상태: ${isDbConnected() ? '사내 MS-SQL 정상 연결' : '사내 MS-SQL 미연결 (환경변수/네트워크 확인 필요)'}`);
     console.log(`=======================================================`);
   });
 }

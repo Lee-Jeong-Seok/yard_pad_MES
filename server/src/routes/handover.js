@@ -1,28 +1,34 @@
 // =============================================================================
 // 시스템명: 야드 현장 업무용 패드 웹 시스템 (Yard Pad MES)
 // 파일명: handover.js
-// 설명: [4] 공정/물류 인계 및 터치 전자서명 REST API 라우터
+// 설명: [4] 공정/물류 인계 및 터치 전자서명 REST API 라우터 (사내 MS-SQL 직접 연동)
 // =============================================================================
 
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { sql, getPool, isMock, mockDb } = require('../config/db');
+const { sql, getPool } = require('../config/db');
 
 const uploadDir = path.resolve(__dirname, '../../uploads');
+
+// DB 연결 가드 미들웨어
+function checkDbConnection(req, res, next) {
+  const pool = getPool();
+  if (!pool) {
+    return res.status(503).json({
+      success: false,
+      message: '사내 MS-SQL 데이터베이스에 연결되어 있지 않습니다. 서버 연결 상태를 확인해 주십시오.'
+    });
+  }
+  next();
+}
+
+router.use(checkDbConnection);
 
 // 1. 인계 대상 품목 목록 조회
 router.get('/items', async (req, res) => {
   try {
-    if (isMock()) {
-      const list = mockDb.orders.filter(item => 
-        item.MATERIAL_STATUS === 'HANDOVER_WAIT' || 
-        item.MATERIAL_STATUS === 'STOCK'
-      );
-      return res.json({ success: true, data: list, count: list.length });
-    }
-
     const pool = getPool();
     const result = await pool.request().query(`
       SELECT * FROM VW_YARD_INBOUND_LIST 
@@ -54,7 +60,7 @@ router.post('/submit', async (req, res) => {
       });
     }
 
-    // Base64 서명 이미지를 PNG 파일로 저장
+    // Base64 서명 이미지를 PNG 파일로 로컬 디스크에 영구 저장
     let signatureUrl = signatureData;
     if (signatureData.startsWith('data:image/')) {
       const matches = signatureData.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
@@ -71,40 +77,6 @@ router.post('/submit', async (req, res) => {
     const handoverNo = `HO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
     const barcodes = items.map(it => it.barcode);
     const totalQty = items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0), 0);
-
-    if (isMock()) {
-      mockDb.handovers.push({
-        HANDOVER_NO: handoverNo,
-        TARGET_DEPT: targetDept,
-        RECEIVER_NAME: receiverName,
-        SIGNATURE_DATA: signatureUrl,
-        ITEM_COUNT: items.length,
-        TOTAL_QTY: totalQty,
-        BARCODES: JSON.stringify(barcodes),
-        STATUS: 'COMPLETED',
-        HANDOVER_DATE: new Date().toISOString()
-      });
-
-      // 대상 자재 상태 변경
-      barcodes.forEach(bc => {
-        const mat = mockDb.orders.find(o => o.BARCODE === bc);
-        if (mat) {
-          mat.MATERIAL_STATUS = 'COMPLETED';
-          mat.CURRENT_LOC = `투입:${targetDept}`;
-        }
-      });
-
-      return res.json({
-        success: true,
-        message: `공정 인계 및 전자서명 날인이 완료되었습니다. (인계번호: ${handoverNo})`,
-        data: {
-          handoverNo,
-          signatureUrl,
-          totalQty,
-          itemCount: items.length
-        }
-      });
-    }
 
     const pool = getPool();
     const transaction = new sql.Transaction(pool);
@@ -142,7 +114,7 @@ router.post('/submit', async (req, res) => {
       await transaction.commit();
       res.json({
         success: true,
-        message: `공정 인계 및 전자서명이 확정 저장되었습니다. (인계번호: ${handoverNo})`,
+        message: `공정 인계 및 전자서명이 사내 MS-SQL에 성공적으로 확정 저장되었습니다. (인계번호: ${handoverNo})`,
         data: { handoverNo, signatureUrl }
       });
     } catch (err) {

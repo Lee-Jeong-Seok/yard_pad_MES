@@ -12,7 +12,7 @@
 * **시스템 구성**:
   1. **클라이언트**: 반응형 PWA 웹 애플리케이션 (주소창 없는 Standalone 모드, 카메라 바코드/QR 스캔, Canvas 자동 사진 압축, 터치 전자서명 캔버스, 내장 문서 뷰어)
   2. **서버 인프라**: 사내 Rocky Linux 서버 (Docker Compose 기반 Nginx 리버스 프록시 + Node.js Express REST API)
-  3. **데이터베이스**: 사내 MS-SQL Server (기존 MES DB 직접 연동 및 오프라인/로컬 테스트용 Mock fallback 지원)
+  3. **데이터베이스**: 사내 MS-SQL Server (기존 MES DB 100% 직접 연동, 임의의 목업/가상 데이터 배제)
 
 ---
 
@@ -23,7 +23,7 @@
   * 전자서명 패드: `signature_pad`
 * **Backend**: Node.js, Express.js, `mssql` (T-SQL 커넥션 풀), `multer` (사진/도면 업로드), `cors`, `dotenv`
 * **Infrastructure**: Docker, Docker Compose, Nginx Reverse Proxy
-* **Database**: MS-SQL (MSSQL) Server
+* **Database**: 사내 MS-SQL (MSSQL) Server
 
 ---
 
@@ -40,6 +40,9 @@
    * 정상 동작하던 기존 기능/설정은 임의로 변경하지 않으며, 변경이 필요한 경우 이유와 영향 범위를 명확히 안내합니다.
 5. **개발 이력 관리 지침 (HISTORY Routine)**:
    * 중요한 기능 추가나 구조 변경 시 작업 완료 후 `HISTORY/` 폴더 내에 날짜별/순번별 기록 문서(`Implementation Plan_YYYYMMDD-NN.md`, `Walkthrough_YYYYMMDD-NN.md`, `Task_YYYYMMDD-NN.md`)를 작성하고 `HISTORY/INDEX.md`를 업데이트합니다.
+6. **목업 및 가상 데이터 생성 절대 금지 원칙 (중요)**:
+   * 현장 데이터 혼선 방지를 위해 **사용자의 명시적 요청이 없는 한 임의의 목업(Mock)이나 가상 데이터를 절대 생성하지 않습니다.**
+   * 데이터베이스는 사내 실제 MES DB를 1:1로 직접 연동하며, 사용할 테이블과 인덱스는 사용자께서 제공해주신 사내 명세를 기준으로 개발합니다.
 
 ---
 
@@ -55,7 +58,7 @@ yard_pad_MES/
 ├── .gitignore                         # Git 제외 항목
 ├── HISTORY/                           # 개발 이력 백업 및 인덱스
 ├── nginx/                             # Nginx 리버스 프록시 설정
-├── sql/                               # MSSQL 테이블/뷰 DDL 및 시드 데이터
 ├── server/                            # Node.js REST API 백엔드
 └── client/                            # 반응형 모바일 PWA 웹 프론트엔드
 ```
+

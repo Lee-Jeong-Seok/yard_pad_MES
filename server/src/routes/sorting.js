@@ -1,25 +1,30 @@
 // =============================================================================
 // 시스템명: 야드 현장 업무용 패드 웹 시스템 (Yard Pad MES)
 // 파일명: sorting.js
-// 설명: [2] 입고선별 REST API 라우터
+// 설명: [2] 입고선별 REST API 라우터 (사내 MS-SQL 직접 연동)
 // =============================================================================
 
 const express = require('express');
 const router = express.Router();
-const { sql, getPool, isMock, mockDb } = require('../config/db');
+const { sql, getPool } = require('../config/db');
+
+// DB 연결 가드 미들웨어
+function checkDbConnection(req, res, next) {
+  const pool = getPool();
+  if (!pool) {
+    return res.status(503).json({
+      success: false,
+      message: '사내 MS-SQL 데이터베이스에 연결되어 있지 않습니다. 서버 연결 상태를 확인해 주십시오.'
+    });
+  }
+  next();
+}
+
+router.use(checkDbConnection);
 
 // 1. 선별 대상 품목 목록 조회
 router.get('/', async (req, res) => {
   try {
-    if (isMock()) {
-      const list = mockDb.orders.filter(item => 
-        item.MATERIAL_STATUS === 'SORT_WAIT' || 
-        item.INSP_STATUS === 'CONDITIONAL' ||
-        item.ORDER_STATUS === 'INSPECTED'
-      );
-      return res.json({ success: true, data: list, count: list.length });
-    }
-
     const pool = getPool();
     const result = await pool.request().query(`
       SELECT * FROM VW_YARD_INBOUND_LIST 
@@ -50,35 +55,6 @@ router.post('/submit', async (req, res) => {
 
     if (!barcode || goodQty === undefined) {
       return res.status(400).json({ success: false, message: '바코드 및 양품 수량은 필수입니다.' });
-    }
-
-    if (isMock()) {
-      mockDb.sortResults.push({
-        SORT_ID: mockDb.sortResults.length + 1,
-        BARCODE: barcode,
-        SORT_DATE: new Date().toISOString(),
-        SORTER: sorter || '현장선별원',
-        GOOD_QTY: goodQty,
-        DEFECT_QTY: defectQty || 0,
-        REWORK_QTY: reworkQty || 0,
-        GRADE: grade || 'A',
-        NEXT_LOCATION: nextLocation || 'YD-A-01',
-        MEMO: memo || '',
-        REG_DATE: new Date().toISOString()
-      });
-
-      const target = mockDb.orders.find(o => o.BARCODE === barcode);
-      if (target) {
-        target.MATERIAL_STATUS = 'STOCK';
-        target.GRADE = grade || 'A';
-        target.CURRENT_LOC = nextLocation || 'YD-A-01';
-      }
-
-      return res.json({
-        success: true,
-        message: '선별 결과가 확정되었습니다. 지정 로케이션으로 이동 배치됩니다.',
-        data: { barcode, nextLocation: target ? target.CURRENT_LOC : nextLocation }
-      });
     }
 
     const pool = getPool();
@@ -115,7 +91,7 @@ router.post('/submit', async (req, res) => {
         `);
 
       await transaction.commit();
-      res.json({ success: true, message: '선별 데이터가 MS-SQL에 확정 저장되었습니다.' });
+      res.json({ success: true, message: '선별 데이터가 사내 MS-SQL에 성공적으로 확정 저장되었습니다.' });
     } catch (err) {
       await transaction.rollback();
       throw err;

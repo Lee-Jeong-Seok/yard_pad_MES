@@ -1,11 +1,10 @@
 // =============================================================================
 // 시스템명: 야드 현장 업무용 패드 웹 시스템 (Yard Pad MES)
 // 파일명: db.js
-// 설명: MS-SQL Server 커넥션 풀 및 Mock DB 자동 폴백 핸들러
+// 설명: 사내 MS-SQL Server 커넥션 풀 관리 모듈 (실제 MES DB 직접 연동)
 // =============================================================================
 
 const sql = require('mssql');
-const mockDb = require('../mock/sampleData');
 
 const sqlConfig = {
   user: process.env.DB_USER || 'mes_user',
@@ -25,21 +24,16 @@ const sqlConfig = {
 };
 
 let pool = null;
-let isMockMode = process.env.USE_MOCK_DB === 'true';
 
 async function initDb() {
-  if (isMockMode) {
-    console.log('📌 [DB] USE_MOCK_DB가 활성화되어 인메모리 Mock 데이터베이스 모드로 동작합니다.');
-    return;
-  }
-
   try {
-    console.log(`🔌 [DB] MS-SQL 서버 연결 시도 (${sqlConfig.server}:${sqlConfig.port}/${sqlConfig.database})...`);
+    console.log(`🔌 [DB] 사내 MS-SQL 서버 연결 시도 (${sqlConfig.server}:${sqlConfig.port}/${sqlConfig.database})...`);
     pool = await sql.connect(sqlConfig);
-    console.log('✅ [DB] MS-SQL 데이터베이스에 성공적으로 연결되었습니다.');
+    console.log('✅ [DB] 사내 MS-SQL 데이터베이스에 성공적으로 연결되었습니다.');
   } catch (err) {
-    console.warn(`⚠️ [DB] MS-SQL 연결 실패 (${err.message}). Mock 데이터베이스로 자동 전환합니다.`);
-    isMockMode = true;
+    console.error(`❌ [DB] 사내 MS-SQL 연결 실패: ${err.message}`);
+    console.warn('⚠️ [DB] DB 연결 설정(.env) 또는 사내 MS-SQL 서버 구동 상태를 확인해 주십시오.');
+    pool = null;
   }
 }
 
@@ -47,14 +41,14 @@ function getPool() {
   return pool;
 }
 
-function isMock() {
-  return isMockMode;
+function isDbConnected() {
+  return pool !== null && pool.connected;
 }
 
 module.exports = {
   sql,
   initDb,
   getPool,
-  isMock,
-  mockDb
+  isDbConnected
 };
+

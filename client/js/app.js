@@ -60,17 +60,16 @@ const App = {
     updateWifi();
   },
 
-  // 서버 및 DB 상태 체크
   async checkServerStatus() {
     const dbPill = document.getElementById('dbStatusPill');
     try {
       const res = await API.checkHealth();
-      if (res.mockMode) {
-        dbPill.className = 'status-pill mock';
-        dbPill.innerHTML = '<span class="status-dot"></span> MOCK DB';
-      } else {
+      if (res.dbConnected) {
         dbPill.className = 'status-pill';
         dbPill.innerHTML = '<span class="status-dot"></span> MS-SQL 연동';
+      } else {
+        dbPill.className = 'status-pill offline';
+        dbPill.innerHTML = '<span class="status-dot"></span> DB 미연결';
       }
     } catch (e) {
       dbPill.className = 'status-pill offline';

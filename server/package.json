@@ -1,7 +1,7 @@
 {
   "name": "yard-pad-mes-server",
   "version": "1.0.0",
-  "description": "Yard Pad MES REST API Server with MS-SQL & Mock Support",
+  "description": "Yard Pad MES REST API Server with Direct MS-SQL Integration",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",

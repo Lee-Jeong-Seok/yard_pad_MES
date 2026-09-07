@@ -58,9 +58,8 @@ graph TD
   * Service Worker & Web App Manifest: PWA Standalone 전체화면 구동
 * **Backend**:
   * Node.js, Express.js
-  * `mssql`: 사내 MS-SQL Server 커넥션 풀 및 트랜잭션 처리
+  * `mssql`: 사내 MS-SQL Server 커넥션 풀 및 트랜잭션 처리 (기존 MES DB 직접 연동)
   * `multer`: 현장 사진 및 도면 업로드
-  * Mock DB 어댑터: 사내망 외부/로컬 개발 환경 시 자동 인메모리 Fallback 지원
 * **Infrastructure**:
   * Docker & Docker Compose
   * Nginx Reverse Proxy (Gzip 압축 및 정적 리소스 캐싱)
@@ -75,7 +74,7 @@ graph TD
 cd server
 npm install
 
-# 2. 서버 실행 (자동 인메모리 Mock DB 모드로 구동)
+# 2. 서버 실행
 npm start
 # 또는 핫리로드 개발 모드
 npm run dev
@@ -112,12 +111,10 @@ yard_pad_MES/
 ├── HISTORY/                           # 개발 및 기획 이력 관리
 │   ├── INDEX.md
 │   ├── Implementation Plan_20260906-01.md
-│   └── Walkthrough_20260906-01.md
+│   ├── Walkthrough_20260906-01.md
+│   └── Implementation Plan_20260907-01.md
 ├── nginx/                             # Nginx 리버스 프록시 설정
 │   └── nginx.conf
-├── sql/                               # MSSQL 테이블/뷰 DDL 및 시드 데이터
-│   ├── 01_schema.sql
-│   └── 02_seed_data.sql
 ├── server/                            # Node.js REST API 백엔드
 │   ├── Dockerfile
 │   ├── package.json
@@ -125,7 +122,6 @@ yard_pad_MES/
 │   └── src/
 │       ├── app.js
 │       ├── config/                    # DB 및 Multer 설정
-│       ├── mock/                      # 인메모리 Mock 데이터
 │       └── routes/                    # 4대 업무별 라우터
 └── client/                            # 반응형 모바일 PWA 웹 프론트엔드
     ├── index.html
